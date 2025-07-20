@@ -35,14 +35,14 @@ func packRQ(opcode uint16, filename string, mode string) []byte {
 
 func unpackRQ(packet []byte) (filename string, mode string, err error) {
 	opcode := binary.BigEndian.Uint16(packet[0:])
-	if opcode < 1 || opcode > 5 {
-		return "", "", fmt.Errorf("invalid opcode: %d", opcode)
+	if opcode != opRRQ && opcode != opWRQ {
+		return "", "", fmt.Errorf("invalid RQ opcode: %d", opcode)
 	}
 	filenameEndPos := 2
 	for filenameEndPos < len(packet) && packet[filenameEndPos] != 0 {
 		filenameEndPos++
 	}
-	if filenameEndPos == len(packet) {
+	if filenameEndPos >= len(packet)-2 {
 		return "", "", fmt.Errorf("invalid RQ filename format")
 	}
 	filename = string(packet[2:filenameEndPos])
@@ -84,12 +84,21 @@ DATA packet
 
 type packetDATA []byte
 
-func packDATA(packet []byte, block uint16, data []byte) int {
-
+func packDATA(block uint16, data []byte) packetDATA {
+	packet := make([]byte, 4+len(data))
+	binary.BigEndian.PutUint16(packet[0:], opDATA)
+	binary.BigEndian.PutUint16(packet[2:], block)
+	copy(packet[4:], data)
+	return packet
 }
 
 func unpackDATA(packet packetDATA) (block uint16, data []byte, err error) {
-
+	opcode := binary.BigEndian.Uint16(packet[0:])
+	if opcode != opDATA {
+		return 0, nil, fmt.Errorf("invalid DATA opcode: %d", opcode)
+	}
+	block = binary.BigEndian.Uint16(packet[2:])
+	return block, packet[4:], nil
 }
 
 /*
@@ -103,12 +112,20 @@ ACK packet
 
 type packetACK []byte
 
-func packACK(packet []byte, block uint16) int {
-
+func packACK(block uint16) packetACK {
+	packet := make([]byte, 4)
+	binary.BigEndian.PutUint16(packet[0:], opACK)
+	binary.BigEndian.PutUint16(packet[2:], block)
+	return packet
 }
 
 func unpackACK(packet packetACK) (block uint16, err error) {
-
+	opcode := binary.BigEndian.Uint16(packet[0:])
+	if opcode != opACK {
+		return 0, fmt.Errorf("invalid ACK opcode: %d", opcode)
+	}
+	block = binary.BigEndian.Uint16(packet[2:])
+	return block, nil
 }
 
 /*
@@ -122,10 +139,27 @@ ERROR packet
 
 type packetERROR []byte
 
-func packERROR(packet []byte, errorCode uint16, errorMsg uint16) int {
-
+func packERROR(errorCode uint16, errMsg string) packetERROR {
+	packet := make([]byte, 5+len(errMsg))
+	binary.BigEndian.PutUint16(packet[0:], opERROR)
+	binary.BigEndian.PutUint16(packet[2:], errorCode)
+	copy(packet[4:], errMsg)
+	return packet
 }
 
-func unpackERROR(packet packetERROR) (errorCode uint16, errorMsg uint16, err error) {
-
+func unpackERROR(packet packetERROR) (errorCode uint16, errMsg string, err error) {
+	opcode := binary.BigEndian.Uint16(packet[0:])
+	if opcode != opERROR {
+		return 0, "", fmt.Errorf("invalid ERROR opcode: %d", opcode)
+	}
+	errorCode = binary.BigEndian.Uint16(packet[2:])
+	errMsgEndPos := 4
+	for errMsgEndPos < len(packet) && packet[errMsgEndPos] != 0 {
+		errMsgEndPos++
+	}
+	if errMsgEndPos != len(packet)-1 {
+		return 0, "", fmt.Errorf("invalid ERROR errMsg format")
+	}
+	errMsg = string(packet[4:errMsgEndPos])
+	return errorCode, errMsg, nil
 }

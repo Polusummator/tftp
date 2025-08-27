@@ -65,7 +65,7 @@ func unpackRRQ(packet packetRRQ) (filename string, mode string, err error) {
 	return unpackRQ(packet)
 }
 
-func packWRQ(packet []byte, filename string, mode string) packetWRQ {
+func packWRQ(filename string, mode string) packetWRQ {
 	return packRQ(opWRQ, filename, mode)
 }
 

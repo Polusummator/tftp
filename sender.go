@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 )
 
 type sender struct {
@@ -19,6 +20,7 @@ type sender struct {
 	packetsSent  int
 	packetsAcked int
 	retry        *backoff
+	timeout      time.Duration
 }
 
 func (s *sender) ReadFrom(r io.Reader) (n int64, err error) {
@@ -60,7 +62,11 @@ func (s *sender) ReadFrom(r io.Reader) (n int64, err error) {
 }
 
 func (s *sender) sendData(n int) error {
-	_, err := s.conn.WriteToUDP(s.send[:n], s.remoteAddr)
+	err := s.conn.SetReadDeadline(time.Now().Add(s.timeout))
+	if err != nil {
+		return err
+	}
+	_, err = s.conn.WriteToUDP(s.send[:n], s.remoteAddr)
 	if err != nil {
 		return err
 	}

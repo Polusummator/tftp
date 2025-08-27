@@ -31,13 +31,13 @@ func (s *sender) ReadFrom(r io.Reader) (n int64, err error) {
 		}
 	}()
 	s.block = 1
-	buf := make([]byte, 512)
+	binary.BigEndian.PutUint16(s.send[0:2], opDATA)
 	for {
-		l, err := io.ReadFull(r, buf)
+		l, err := io.ReadFull(r, s.send[4:])
 		n += int64(l)
 		if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
 			if errors.Is(err, io.EOF) {
-				s.send = packDATA(s.block, nil)
+				binary.BigEndian.PutUint16(s.send[2:4], s.block)
 				err := s.sendRetry(4)
 				if err != nil {
 					s.stop(err)
@@ -48,7 +48,7 @@ func (s *sender) ReadFrom(r io.Reader) (n int64, err error) {
 			s.stop(err)
 			return n, err
 		}
-		s.send = packDATA(s.block, buf)
+		binary.BigEndian.PutUint16(s.send[2:4], s.block)
 		err = s.sendRetry(4 + l)
 		if err != nil {
 			s.stop(err)

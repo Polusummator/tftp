@@ -3,13 +3,13 @@ package tftp
 import "time"
 
 const (
-	defaultTimeout     = 1 * time.Second
-	defaultMaxAttempts = 5
+	defaultBackoffTimeout = 1 * time.Second
+	defaultMaxAttempts    = 5
 )
 
 func newBackoff() *backoff {
 	return &backoff{
-		timeout:     defaultTimeout,
+		timeout:     defaultBackoffTimeout,
 		maxAttempts: defaultMaxAttempts,
 		attempt:     1,
 	}

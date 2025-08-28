@@ -68,7 +68,7 @@ func (s *Server) handlePacket(rawPacket []byte, addr *net.UDPAddr) error {
 	s.Lock()
 	defer s.Unlock()
 
-	opcode := binary.BigEndian.Uint16(rawPacket[0:])
+	opcode := binary.BigEndian.Uint16(rawPacket)
 	switch opcode {
 	case opRRQ:
 		filename, mode, err := unpackRRQ(rawPacket)

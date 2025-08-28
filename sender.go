@@ -54,7 +54,7 @@ func (s *sender) ReadFrom(r io.Reader) (n int64, err error) {
 			s.stop(err)
 			return n, err
 		}
-		if l < 512 {
+		if l < defaultBlockSize {
 			return n, nil
 		}
 		s.block++
